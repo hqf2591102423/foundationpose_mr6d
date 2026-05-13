@@ -42,7 +42,7 @@ val/
   │    └── mask_visib/          # 仅可见部分的分割掩码 (不包含被遮挡部分)
   ├── 000001/
 托盘模型
-(base) root@autodl-container-247f44a202-495ca768:~/mr6d_full/models# tree
+(base) root@autodl-container-247f44a202-495ca768:~/mr6d_full/models# tree .
 .
 ├── models_info.json
 ├── obj_000001.ply
