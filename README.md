@@ -1,57 +1,106 @@
-# foundationpose_mr6d
+# FoundationPose on MR6D Dataset
+
 We used FoundationPose to load the models from the MR6D dataset and evaluated them on the validation subset.
-# 环境搭建：
-foundationpose项目链接https://github.com/NVlabs/FoundationPose
-本次使用是在autodl 云服务器4090卡上部署foundationpose ，拉取mr6d的val与models两个文件夹
 
-（可选）foundationpose环境搭建参考官方conda方案，数据集和权重需要自己本地下载然后上传到云服务器
-或者直接使用autodl的foundationpose镜像https://www.autodl.art/i/NVlabs/FoundationPose/FoundationPose，无需手动搭建foundtionpose环境
+## 🛠️ Environment Setup
 
-由于云服务器没有可视化界面，运行官方示例只能采用无头模式，将结果保存到本地
+- Official Project Repository: [NVlabs/FoundationPose](https://github.com/NVlabs/FoundationPose)
+- This implementation was deployed on **AutoDL Cloud Server (NVIDIA RTX 4090)**. We only need to download the `val/` and `models/` folders from the MR6D dataset.
+
+### Option 1: Use Pre-built AutoDL Image (Recommended)
+No manual compilation or environment setup required.
+- AutoDL Image Link: [NVlabs/FoundationPose](https://www.autodl.art/i/NVlabs/FoundationPose/FoundationPose)
+- The code is pre-installed at: `~/chentianxing/FoundationPose`
+- Activate the environment:
+  ```bash
+  conda activate fp
+  cd ~/chentianxing/FoundationPose
+  ```
+
+### Option 2: Manual Conda Setup (Official)
+Follow the [official conda installation guide](https://github.com/NVlabs/FoundationPose#env-setup-option-2-conda-experimental). You will need to:
+1. Create a conda environment with Python 3.9
+2. Install all dependencies (Eigen3, PyTorch, NVDiffRast, PyTorch3D, etc.)
+3. Build the C++ extensions
+4. Download the pre-trained weights and place them in the `weights/` folder
+
+### Headless Mode (For Cloud Servers)
+Since cloud servers do not have a display, run the demo in headless mode. Results will be saved to the specified debug directory:
+```bash
 python run_demo_headless.py
-# 使用
-单场景检测(每帧加载mask,run_mr6d_multiobj_scene_5逻辑正确.py为仅物体出现首帧加载mask)
-python run_mr6d_multiobj_scene.py \
-  --scene_dir /root/mr6d_full/val/000000 \
-  --models_dir /root/mr6d_full/models \
-  --debug_dir /root/chentianxing/FoundationPose/debug
+```
 
-多场景自动检测
+## 🚀 Usage
+
+### Single Scene Detection
+- **Every frame loads mask**:
+  ```bash
+  python run_mr6d_multiobj_scene.py \
+    --scene_dir /root/mr6d_full/val/000000 \
+    --models_dir /root/mr6d_full/models \
+    --debug_dir /root/chentianxing/FoundationPose/debug
+  ```
+
+- **Only first frame loads mask** (more efficient, recommended):
+  ```bash
+  python run_mr6d_multiobj_scene_5.py \
+    --scene_dir /root/mr6d_full/val/000000 \
+    --models_dir /root/mr6d_full/models \
+    --debug_dir /root/chentianxing/FoundationPose/debug
+  ```
+
+### Batch Multi-Scene Detection
+Automatically process all scenes in the validation set:
+```bash
 bash /root/chentianxing/FoundationPose/run_remaining.sh
+```
 
-单场景评估
+### Single Scene Evaluation
+Calculate pose estimation metrics against ground truth:
+```bash
 python /root/chentianxing/FoundationPose/evaluate_metrics.py \
     --gt_json /root/mr6d_full/val/000002/scene_gt.json \
     --pred_json /root/chentianxing/FoundationPose/debug2/scene_gt_pred.json
+```
 
-多场景自动评估
+### Batch Multi-Scene Evaluation
+Automatically evaluate all processed scenes:
+```bash
 bash /root/chentianxing/FoundationPose/eval_all.sh
+```
 
+## 📊 MR6D Dataset Structure
 
-# 采用的数据集
-数据集链接https://huggingface.co/datasets/anas-gouda/mr6d
-数据集类型
+- Dataset Link: [anas-gouda/mr6d](https://huggingface.co/datasets/anas-gouda/mr6d)
+- Total Size: ~12.6 GB
+- Validation Split: 8,478 samples
+
+### Validation Set (`val/`)
+```text
 val/
-  ├── 000000/
-  │    ├── scene_camera.json    # 相机内外参数据
-  │    ├── scene_gt.json        # 3D/6D 真值 (位姿、物体 ID)
-  │    ├── scene_gt_info.json   # 2D 真值包围盒及遮挡掩码等可见度信息
-  │    ├── rgb/                 # RGB 图像
-  │    ├── depth/               # 深度图
-  │    ├── mask/                # 物体整体投影分割掩码 (包含被遮挡部分)
-  │    └── mask_visib/          # 仅可见部分的分割掩码 (不包含被遮挡部分)
-  ├── 000001/
-托盘模型
-'''
-(base) root@autodl-container-247f44a202-495ca768:~/mr6d_full/models# tree .
-.
-├── models_info.json
-├── obj_000001.ply
-├── obj_000002.ply
+├── 000000/
+│   ├── scene_camera.json      # Camera intrinsic & extrinsic parameters
+│   ├── scene_gt.json          # 3D/6D ground truth (poses, object IDs)
+│   ├── scene_gt_info.json     # 2D bounding boxes, occlusion masks, visibility info
+│   ├── rgb/                   # RGB images
+│   ├── depth/                 # Depth maps
+│   ├── mask/                  # Full object projection masks (including occluded parts)
+│   └── mask_visib/            # Visible-only segmentation masks (excluding occluded parts)
+├── 000001/
+│   └── ...
+└── ...
+```
+
+### 3D Object Models (`models/`)
+```text
+models/
+├── models_info.json           # Object metadata (dimensions, IDs, etc.)
+├── obj_000001.ply             # 3D mesh file for object 1
+├── obj_000002.ply             # 3D mesh file for object 2
 ├── obj_000003.ply
 ├── obj_000004.ply
 ├── obj_000005.ply
-├── obj_000005.png
+├── obj_000005.png             # Texture/render image for object 5
 ├── obj_000006.ply
 ├── obj_000006.png
 ├── obj_000007.ply
@@ -76,4 +125,4 @@ val/
 └── obj_000016.png
 
 0 directories, 29 files
-'''
+```
